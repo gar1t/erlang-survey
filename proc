@@ -1,0 +1,164 @@
+#!/usr/bin/env escript
+%% -*-erlang-*-
+
+%%===================================================================
+%% Usage
+%%===================================================================
+
+usage() ->
+    io:format(
+      "proc COMMAND [OPTIONS]~n"
+      "~n"
+      "COMMANDS:~n"
+      "~n"
+      "  count FILE~n"
+      "     print counts from FILE~n"
+      "~n"
+      "  wordify FILE PROP"
+      "~n"
+      "      generate a wordle document from counts from FILE~n"
+      "~n"),
+    erlang:halt(1).
+
+%%===================================================================
+%% Dispatch
+%%===================================================================
+
+main(["count", File]) ->
+    count(load_file(File));
+main(["wordify", File, Prop]) ->
+    wordify(load_file(File), Prop);
+main(_) ->
+    usage().
+
+%%===================================================================
+%% Utils
+%%===================================================================
+
+load_file(File) ->
+    handle_consult(file:consult(File)).
+
+handle_consult({ok, [Data]}) -> Data;
+handle_consult({ok, _}) ->
+    script_error("Unexpected file contents");
+handle_consult({error, Err}) ->
+    script_error(io_lib:format("~p", [Err])).
+
+script_error(Msg) ->
+    io:format(["ERROR: ", Msg, "~n"]),
+    erlang:halt(1).
+
+%%===================================================================
+%% Count
+%%===================================================================
+
+count(Data) ->
+    io:format("~p.~n", [formatted_counts(Data)]).
+
+formatted_counts(Data) ->
+    format_counts(count_data(Data)).
+
+count_data(Data) ->
+    count_data(Data, dict:new()).
+
+count_data([{_Id, skipped}|Rest], Counts) ->
+    count_data(Rest, Counts);
+count_data([{_Id, Attrs}|Rest], Counts) ->
+    count_data(Attrs, Rest, Counts);
+count_data([], Counts) ->
+    Counts.
+
+format_counts(Counts) ->
+    AsList = dict:to_list(Counts),
+    Formatted =
+        [{Prop, format_prop_counts(PropCounts)}
+         || {Prop, PropCounts} <- AsList],
+    lists:sort(Formatted).
+
+format_prop_counts(PropCounts) ->
+    lists:sort(dict:to_list(PropCounts)).
+
+-define(countable(N),
+        N == impression orelse
+        N == application orelse
+        N == challenges orelse
+        N == alternatives orelse
+        N == to_change).
+
+count_data([{Prop, Tags}|RestAttrs], RestData, Counts) 
+  when ?countable(Prop) ->
+    count_data(Prop, Tags, RestAttrs, RestData, Counts);
+count_data([_|RestAttrs], RestData, Counts) ->
+    count_data(RestAttrs, RestData, Counts);
+count_data([], RestData, Counts) ->
+    count_data(RestData, Counts).
+
+count_data(Prop, Tags, RestAttrs, RestData, Counts) ->
+    Incremented = increment_tag_counts(Prop, Tags, Counts),
+    count_data(RestAttrs, RestData, Incremented).
+
+increment_tag_counts(Prop, Tags, AllCounts) ->
+    PropCounts = prop_counts(Prop, AllCounts),
+    Incremented = increment_tag_counts(Tags, PropCounts),
+    set_prop_counts(Prop, Incremented, AllCounts).
+
+prop_counts(Prop, AllCounts) ->
+    case dict:find(Prop, AllCounts) of
+        {ok, PropCounts} -> PropCounts;
+        error -> dict:new()
+    end.
+
+increment_tag_counts([Tag|Rest], Counts) ->
+    increment_tag_counts(Rest, increment_tag_count(Tag, Counts));
+increment_tag_counts([], Counts) ->
+    Counts.
+
+increment_tag_count(Tag, Counts) ->
+    case dict:find(Tag, Counts) of
+        {ok, Count} -> dict:store(Tag, Count + 1, Counts);
+        error -> dict:store(Tag, 1, Counts)
+    end.
+            
+
+set_prop_counts(Prop, PropCounts, AllCounts) ->
+    dict:store(Prop, PropCounts, AllCounts).
+
+%%===================================================================
+%% Wordify
+%%===================================================================
+
+wordify(Data, Prop) ->
+    Words = wordify_props(formatted_props(Prop, Data)),
+    io:format(Words).
+
+formatted_props(Prop, Data) ->
+    Formatted = formatted_counts(Data),
+    PropAtom = list_to_atom(Prop),
+    proplists:get_value(PropAtom, Formatted, []).
+
+wordify_props(Props) ->
+    wordify_props(Props, []).
+
+wordify_props([{Tag, Count}|Rest], Acc) ->
+    wordify_props(Rest, wordify_tag(Tag, Count, Acc));
+wordify_props([], Acc) -> Acc.
+
+wordify_tag(Tag, N, Acc) when N > 0 -> 
+    wordify_tag(Tag, N - 1, [word(Tag)|Acc]);
+wordify_tag(_Tag, 0, Acc) ->
+    Acc.
+
+word(Tag) ->
+    [" ", format_word(atom_to_list(Tag))].
+
+format_word(Word) ->
+    capitalize_parts(split_word(Word)).
+
+split_word(Word) -> string:tokens(Word, "_").
+
+capitalize_parts(Parts) ->
+    [capitalize(Part) || Part <- Parts].
+
+capitalize([]) -> [];
+capitalize([Chr|Rest]) ->
+    [string:to_upper(Chr)|Rest].

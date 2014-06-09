@@ -1,0 +1,59 @@
+%-*-erlang-*-
+
+[
+
+{experience,
+ [{total, 181},
+  {responses,
+   [{less_than_5, 15},
+    {between_5_and_15, 80},
+    {more_than_15, 86}]}]},
+
+{collegaues,
+ [{total, 181},
+  {responses,
+   [{myself, 22},
+    {between_1_and_5, 67},
+    {more_than_5, 92}]}]},
+
+{languages,
+ [{options, ["Frequently Used", "Occasionally Used", "Total"]},
+  {responses,
+   [{assembly, [2, 34, 36]},
+    {basic_or_vb, [2, 13, 15]},
+    {c, [40, 89, 129]},
+    {cpp, [31, 58, 89]},
+    {c_sharp, [16, 31, 47]},
+    {clojure, [14, 30, 44]},
+    {erlang, [112, 42, 154]},
+    {f_sharp, [3, 13, 16]}
+    {go, [8, 23, 31]},
+    {haskell, [10, 39, 49]},
+    {java, [54, 51, 105]},
+    {java_script, [63, 59, 122]},
+    {lisp, [7, 29, 36]},
+    {objective_c, [17, 24, 41]},
+    {perl, [10, 36, 46]},
+    {php, [11, 32, 43]},
+    {python, [66, 52, 118]},
+    {r, [4, 20, 24]},
+    {ruby, [31, 39, 70]},
+    {scala, [12, 23, 35]},
+    {shell, [82, 45, 127]},
+    {other, [18, 24, 42]}]}]},
+
+ {influence,
+  [{total, 176},
+   {responses,
+    [{not_much_input, 13},
+     {some_input, 69},
+     {final_word, 94}]}]},
+
+ {roles,
+  [{respondents, 181},
+   {responses,
+    [{programmer, 159},
+     {architect_or_designed, 130},
+     {business_manager_or_executive, 43}]}]}
+
+].
